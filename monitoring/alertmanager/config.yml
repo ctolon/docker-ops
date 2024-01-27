@@ -1,0 +1,18 @@
+global: 
+  resolve_timeout: 5m
+
+route: 
+  group_interval: 5m
+  group_wait: 30s
+  receiver: prometheus-msteams
+  repeat_interval: 12h
+
+# https://github.com/prometheus-msteams/prometheus-msteams
+receivers:
+  - 
+    name: prometheus-msteams
+    webhook_configs: 
+      - 
+        send_resolved: true
+        url: "http://prometheus-msteams:2000/alertmanager" # the prometheus-msteams proxy + "/_dynamicwebhook/" + webhook url (without prefix "https://")
+        # new created webhooks have a different format: https://yourtenant.webhook.office.com/webhookb2/xxx...

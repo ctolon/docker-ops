@@ -1,0 +1,164 @@
+version: '3.7'
+
+# - 15675:15675 # HTTP API
+# rabbitmq-data:/var/lib/rabbitmq/mnesia/rabbit@rabbitmq
+
+networks:
+  rabbitmq_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.98.0.0/24
+          gateway: 172.98.0.1
+
+
+
+services:
+
+  # Load Balancer for RabbitMQ Cluster
+  haproxy:
+    image: haproxy:1.7
+    container_name: rabbitmq-haproxy
+    restart: unless-stopped
+    volumes:
+      - ./conf/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - rabbitmq-01
+      - rabbitmq-02
+      - rabbitmq-03
+    ports:
+      - 15672:15672
+      - 5672:5672
+    networks:
+      rabbitmq_net:
+        ipv4_address:
+          172.98.0.2
+
+  rabbitmq-01:
+    image: rabbitmq:${RABBIT_VERSION}-management
+    hostname: rabbitmq-01
+    container_name: rabbitmq-01
+    #user: rabbitmq
+    restart: unless-stopped
+    volumes:
+      - ./conf/rabbitmq-01/:/etc/rabbitmq/
+      - ./data/rabbitmq-01/data/:/usr/share/rabbitmq/data/
+      - ./data/rabbitmq-01/logs/:/var/log/rabbitmq/
+      - ./data/rabbitmq-01/plugins/:/usr/lib/rabbitmq/plugins/
+      - ./data/rabbitmq-01/mnesia/:/var/lib/rabbitmq/mnesia/
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBIT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBIT_PASS}
+      - RABBITMQ_ERLANG_COOKIE=${RABBIT_COOKIE}
+    #ports:
+    #  - "5672:5672" # AMQP
+    #  - "15672:15672" # Admin UI (http://localhost:15672  .. admin:admin)
+    expose:
+      - 5672
+      - 15672
+    networks:
+      rabbitmq_net:
+        ipv4_address:
+          172.98.0.3
+
+    # Must be more than in rabbitmq.conf vm_memory_high_watermark.absolute
+    mem_limit: 4GB
+
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      
+
+  rabbitmq-02:
+    image: rabbitmq:${RABBIT_VERSION}-management
+    hostname: rabbitmq-02
+    container_name: rabbitmq-02
+    restart: unless-stopped
+    volumes:
+      - ./conf/rabbitmq-02/:/etc/rabbitmq/
+      - ./data/rabbitmq-02/data/:/usr/share/rabbitmq/data/
+      - ./data/rabbitmq-02/logs/:/var/log/rabbitmq/
+      - ./data/rabbitmq-02/plugins/:/usr/lib/rabbitmq/plugins/
+      - ./data/rabbitmq-02/mnesia/:/var/lib/rabbitmq/mnesia/
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBIT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBIT_PASS}
+      - RABBITMQ_ERLANG_COOKIE=${RABBIT_COOKIE}
+    #ports:
+    #  - "5673:5672"
+    #  - "15673:15672"
+    expose:
+      - 5672
+      - 15672
+
+    networks:
+      rabbitmq_net:
+        ipv4_address:
+          172.98.0.4
+
+    depends_on:
+      - rabbitmq-01
+
+    # Must be same as in rabbitmq.conf vm_memory_high_watermark.absolute
+    mem_limit: 4GB
+
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  rabbitmq-03:
+    image: rabbitmq:${RABBIT_VERSION}-management
+    hostname: rabbitmq-03
+    container_name: rabbitmq-03
+    restart: unless-stopped
+    volumes:
+      - ./conf/rabbitmq-03/:/etc/rabbitmq/
+      - ./data/rabbitmq-03/data/:/usr/share/rabbitmq/data/
+      - ./data/rabbitmq-03/logs/:/var/log/rabbitmq/
+      - ./data/rabbitmq-03/plugins/:/usr/lib/rabbitmq/plugins/
+      - ./data/rabbitmq-03/mnesia/:/var/lib/rabbitmq/mnesia/
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBIT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBIT_PASS}
+      - RABBITMQ_ERLANG_COOKIE=${RABBIT_COOKIE}
+    #ports:
+    #  - "5674:5672"
+    #  - "15674:15672"
+    expose:
+      - 5672
+      - 15672
+    networks:
+      rabbitmq_net:
+        ipv4_address:
+          172.98.0.5
+
+    depends_on:
+      - rabbitmq-01
+
+    # Must be same as in rabbitmq.conf vm_memory_high_watermark.absolute
+    mem_limit: 4GB
+
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 60s
+      timeout: 10s
+      retries: 3

@@ -1,0 +1,57 @@
+version: '3'
+
+
+networks:
+  mongodb_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.76.0.0/24
+
+volumes:
+  mongodb-data: {}
+
+
+services:
+  mongodb:
+    image: mongo:${MONGO_VERSION}
+    container_name: nm-mongodb
+    build:
+      context: .
+      dockerfile: Dockerfile.mongo
+      args:
+        - MONGO_VERSION=${MONGO_VERSION}
+    hostname: nm-mongodb
+    restart: always
+    ports:
+      - ${MONGO_PORT}:${MONGO_PORT}
+    networks:
+      mongodb_network:
+        ipv4_address: ${IP_MONGO}
+    volumes:
+      - mongodb-data:/data
+    env_file:
+      - .env
+
+  mongo-express:
+    image: mongo-express:${ME_VERSION}
+    container_name: nm-mongo-express
+    build:
+      context: .
+      dockerfile: Dockerfile.me
+      args:
+        - ME_VERSION=${ME_VERSION}
+    hostname: nm-mongo-express
+    restart: always
+    ports:
+      - ${ME_PORT}:${ME_PORT}
+    depends_on:
+      - mongodb
+    networks:
+      mongodb_network:
+        ipv4_address: ${IP_ME}
+    volumes:
+      - mongodb-data:/data
+    env_file:
+      - .env 

@@ -1,0 +1,141 @@
+version: "3.7"
+        
+services:
+  proxy:
+    depends_on:
+      generate-certs:
+        condition: service_completed_successfully
+    container_name: jupyterhub-proxy
+    hostname: jupyterhub-proxy
+    image: jupyterhub/configurable-http-proxy:4
+    restart: always
+    environment:
+      CONFIGPROXY_AUTH_TOKEN: ${CONFIGPROXY_AUTH_TOKEN}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - "ssl:${SSL_VOLUME_CONTAINER}:ro"
+    user: "0:0"
+    ports:
+      - "${PROXY_PORT_HOST}:${PROXY_PORT_CONTAINER}"
+    networks:
+      jupyterhub-net:
+        ipv4_address: "${IP_PROXY}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8040/_chp_healthz"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    command: >
+      configurable-http-proxy
+      --port 8040
+      --api-ip 0.0.0.0
+      --api-port 8030
+      --error-target https://nm-jupyterhub:8030/hub/error
+      --api-ssl-key ${SSL_VOLUME_CONTAINER}/certs/proxy-api/proxy-api.key
+      --api-ssl-cert ${SSL_VOLUME_CONTAINER}/certs/proxy-api/proxy-api.crt
+      --api-ssl-ca ${SSL_VOLUME_CONTAINER}/certs/proxy-api-ca_trust.crt
+      --api-ssl-request-cert
+      --api-ssl-reject-unauthorized
+      --client-ssl-key ${SSL_VOLUME_CONTAINER}/certs/proxy-client/proxy-client.key
+      --client-ssl-cert ${SSL_VOLUME_CONTAINER}/certs/proxy-client/proxy-client.crt
+      --client-ssl-ca ${SSL_VOLUME_CONTAINER}/certs/proxy-client-ca_trust.crt
+      --client-ssl-request-cert
+      --client-ssl-reject-unauthorized
+
+  # this is identical to the hub service
+  # but runs the `--generate-certs` step first
+  generate-certs:
+    image: jupyterhub/jupyterhub:internal-ssl
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: generate-certs-jupyterhub
+    restart: "no"
+    user: "0:0"
+    volumes:
+      - "ssl:${SSL_VOLUME_CONTAINER}:rw"
+      - ./config//jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py
+      - ./config/userlist:/srv/jupyterhub/userlist
+    environment:
+      PYTHONUNBUFFERED: "1"
+      CONFIGPROXY_AUTH_TOKEN: ${CONFIGPROXY_AUTH_TOKEN}
+      INTERNAL_SSL_PATH: ${SSL_VOLUME_CONTAINER}/certs
+    env_file:
+      - .env
+    working_dir: ${DATA_VOLUME_CONTAINER}
+    command: >
+      jupyterhub -f /srv/jupyterhub/jupyterhub_config.py --generate-certs
+
+  nm-hub-db:
+    image: postgres:9.5
+    container_name: jupyterhub-db
+    restart: on-failure
+    user: postgres
+    hostname: postgres
+    networks:
+      jupyterhub-net:
+        ipv4_address: ${IP_DB}
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: ${DB_VOLUME_CONTAINER}
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    cap_add: 
+      - SYS_NICE # CAP_SYS_NICE
+    volumes:
+      - "db:${DB_VOLUME_CONTAINER}"
+    command: -p 5433
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  nm-jupyterhub:
+    image: nm-jupyterhub
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        JUPYTERHUB_TAG: ${JUPYTERHUB_TAG}
+    container_name: nm-jupyterhub
+    hostname: nm-jupyterhub
+    tty: true
+    ports:
+      - "${JUPYTERHUB_PROXY_PORT}:${JUPYTERHUB_PROXY_PORT}"
+      - "${JUPYTERHUB_PORT}:${JUPYTERHUB_PORT}"
+    networks:
+      jupyterhub-net:
+        ipv4_address: "${IP_JUPYTERHUB}"
+    restart: unless-stopped
+    volumes:
+      - ${DOCKER_SOCKET_PATH}:${DOCKER_SOCKET_PATH}
+      - jupyterhub_data:/srv/jupyterhub
+      - ./config//jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py
+      - ./config/userlist:/srv/jupyterhub/userlist
+      - "ssl:${SSL_VOLUME_CONTAINER}:rw"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      CONFIGPROXY_AUTH_TOKEN: ${CONFIGPROXY_AUTH_TOKEN}
+      INTERNAL_SSL_PATH: ${SSL_VOLUME_CONTAINER}/certs
+    env_file:
+      - .env
+    depends_on:
+      proxy:
+        condition: service_healthy
+      generate-certs:
+        condition: service_completed_successfully
+    command: >
+      jupyterhub -f /srv/jupyterhub/jupyterhub_config.py
+    #command: /bin/bash
+
+networks:
+   jupyterhub-net:
+      external: true
+
+volumes:
+  jupyterhub_data: {}
+  db: {}
+  ssl: {}

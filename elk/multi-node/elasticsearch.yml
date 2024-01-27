@@ -1,0 +1,4 @@
+# Dummy yaml for env variable based compose
+cluster.name: "elk-ctolon"
+network.host: 0.0.0.0
+reindex.remote.whitelist: ["172.76.0.3:9200"]

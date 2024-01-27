@@ -1,0 +1,9 @@
+https://dataxschool.medium.com/apache-cassandra-write-performance-tunning-tips-2023-546d4847aa78
+https://github.com/pitrho/docker-cassandra
+https://www.slideshare.net/planetcassandra/cassandra-and-docker-lessons-learnt
+https://github.com/stankelberg/dcc/blob/master/docker-compose.yml
+https://github.com/logdeveloper/cassandra-docker-compose/blob/master/README.md
+https://github.com/JasonGiedymin/docker-cassandra-cluster/blob/master/docker-compose.yml
+https://github.com/pythian/cassandra-elk/blob/master/docker-compose.yml
+https://github.com/thelastpickle/cassandra-reaper/blob/master/src/packaging/docker-compose.yml
+https://github.com/DataStax-Examples/spring-k8s-cassandra-microservices/blob/master/docker-compose.yaml

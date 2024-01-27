@@ -1,0 +1,153 @@
+version: "3.7"
+
+networks:
+  cassandra_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.65.0.0/24
+          gateway: 10.65.0.1
+
+services:
+  cassandra-01:
+    image: cassandra:${IMAGE_VERSION}
+    container_name: cassandra-01
+    hostname: cassandra-01
+    restart: unless-stopped
+
+    environment:
+      CASSANDRA_CLUSTER_NAME: ${CASSANDRA_CLUSTER_NAME}
+      CASSANDRA_SEEDS: ${CASSANDRA_SEEDS}
+      CASSANDRA_ENDPOINT_SNITCH: ${CASSANDRA_ENDPOINT_SNITCH}
+      CASSANDRA_DC: ${CASSANDRA_DC}
+      CASSANDRA_RACK: ${CASSANDRA_RACK}
+
+      CASSANDRA_NUM_TOKENS: ${CASSANDRA_NUM_TOKENS}
+      MAX_HEAP_SIZE: ${MAX_HEAP_SIZE}
+      HEAP_NEWSIZE: ${HEAP_NEWSIZE}
+
+    ports:
+      - "9042:9042"
+      - "7000:7000"
+      - "7001:7001"
+      - "7199:7199"
+    networks:
+      cassandra_net:
+        ipv4_address: 10.65.0.2
+
+    volumes:
+      - ./data/cassandra-01:/var/lib/cassandra    # This is the volume that will persist data for cass2 node
+      - ./logs/cassandra-01:/var/log/cassandra    # Use your own log files for full control
+
+      - ./etc/cassandra-01/cassandra.yaml:/etc/cassandra/cassandra.yaml    # Use your own config files for full control
+      - ./etc/cassandra-01/logback.xml:/etc/cassandra/logback.xml
+
+    ulimits:
+        memlock: -1
+        nproc: 32768
+        nofile: 100000
+
+    healthcheck:
+        test: ["CMD", "cqlsh", "-e", "describe keyspaces" ]
+        interval: 5s
+        timeout: 5s
+        retries: 60
+
+  cassandra-02:
+    image: cassandra:${IMAGE_VERSION}
+    container_name: cassandra-02
+    hostname: cassandra-02
+    restart: unless-stopped
+
+    environment:
+      CASSANDRA_CLUSTER_NAME: ${CASSANDRA_CLUSTER_NAME}
+      CASSANDRA_SEEDS: ${CASSANDRA_SEEDS}
+      CASSANDRA_ENDPOINT_SNITCH: ${CASSANDRA_ENDPOINT_SNITCH}
+      CASSANDRA_DC: ${CASSANDRA_DC}
+      CASSANDRA_RACK: ${CASSANDRA_RACK}
+
+      CASSANDRA_NUM_TOKENS: ${CASSANDRA_NUM_TOKENS}
+      MAX_HEAP_SIZE: ${MAX_HEAP_SIZE}
+      HEAP_NEWSIZE: ${HEAP_NEWSIZE}
+
+    expose:
+      - "7000"
+      - "7001"
+      - "7199"
+      - "9042"
+    networks:
+      cassandra_net:
+        ipv4_address: 10.65.0.3
+
+    volumes:
+      - ./data/cassandra-02:/var/lib/cassandra
+      - ./logs/cassandra-02:/var/log/cassandra
+
+      - ./etc/cassandra-02/cassandra.yaml:/etc/cassandra/cassandra.yaml
+      - ./etc/cassandra-02/logback.xml:/etc/cassandra/logback.xml
+
+    ulimits:
+        memlock: -1
+        nproc: 32768
+        nofile: 100000
+
+    healthcheck:
+        test: ["CMD", "cqlsh", "-e", "describe keyspaces" ]
+        interval: 5s
+        timeout: 5s
+        retries: 60
+
+    depends_on:
+      cassandra-01:
+        condition: service_healthy
+
+  cassandra-03:
+    image: cassandra:${IMAGE_VERSION}
+    container_name: cassandra-03
+    hostname: cassandra-03
+    restart: unless-stopped
+
+    environment:
+      CASSANDRA_CLUSTER_NAME: ${CASSANDRA_CLUSTER_NAME}
+      CASSANDRA_SEEDS: ${CASSANDRA_SEEDS}
+      CASSANDRA_ENDPOINT_SNITCH: ${CASSANDRA_ENDPOINT_SNITCH}
+      CASSANDRA_DC: ${CASSANDRA_DC}
+      CASSANDRA_RACK: ${CASSANDRA_RACK}
+
+      CASSANDRA_NUM_TOKENS: ${CASSANDRA_NUM_TOKENS}
+      MAX_HEAP_SIZE: ${MAX_HEAP_SIZE}
+      HEAP_NEWSIZE: ${HEAP_NEWSIZE}
+
+    expose:
+      - "7000"
+      - "7001"
+      - "7199"
+      - "9042"
+    networks:
+      cassandra_net:
+        ipv4_address: 10.65.0.4
+
+    volumes:
+      - ./data/cassandra-03:/var/lib/cassandra
+      - ./logs/cassandra-03:/var/log/cassandra
+
+      - ./etc/cassandra-03/cassandra.yaml:/etc/cassandra/cassandra.yaml
+      - ./etc/cassandra-03/logback.xml:/etc/cassandra/logback.xml
+
+    ulimits:
+        memlock: -1
+        nproc: 32768
+        nofile: 100000
+
+    healthcheck:
+        test: ["CMD", "cqlsh", "-e", "describe keyspaces" ]
+        interval: 5s
+        timeout: 5s
+        retries: 60
+
+    depends_on:
+      cassandra-02:
+        condition: service_healthy
+    
+

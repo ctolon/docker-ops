@@ -1,0 +1,27 @@
+# Dashboard for Airflow - Celery
+
+version: '3.7'
+
+services:  
+  flower:
+    image: mher/flower
+    container_name: rabbitmq-flower
+    # build: .
+    #command: celery -A celery_worker --broker=${BROKER_URL} flower --port=5555
+    command: celery --broker=${BROKER_URL} flower --port=5555
+    environment:
+      - CELERY_BROKER_URL=${BROKER_URL}
+      - FLOWER_PORT=5555
+    restart: always
+    volumes:
+      - ./examples:/data
+    working_dir: /data
+    network_mode: host
+    #ports:
+    #  - 7100:5555
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s

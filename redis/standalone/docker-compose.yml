@@ -1,0 +1,60 @@
+version: "3.9"
+
+networks:
+  redis_ml_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.74.0.0/24
+
+volumes:
+  redis:
+
+services:
+  redis:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REDIS_TAG: ${REDIS_TAG}
+    container_name: redis
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    sysctls:
+      - net.core.somaxconn=65535
+    restart: always
+    volumes:
+      - redis:/var/lib/redis
+      - ./conf/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+    networks:
+      redis_ml_network:
+        ipv4_address: ${IP_REDIS}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 50
+      start_period: 30s
+
+  #redis-commander:
+  #  image: rediscommander/redis-commander:latest
+  #  restart: always
+  #  ports:
+  #    - ${REDIS_UI_PORT}:${REDIS_UI_PORT}
+  #  networks:
+  #    redis_ml_network:
+  #      ipv4_address: ${IP_UI_REDIS}
+#
+  #redis-exporter:
+  #  image: oliver006/redis_exporter:v1.6.0-alpine
+  #  restart: always
+  #  ports:
+  #    - ${EXPORTER_PORT}:${EXPORTER_PORT}
+  #  networks:
+  #    redis_ml_network:
+  #      ipv4_address: ${IP_EXPORTER}
+  #  command:
+  #    - '--redis.addr=redis://redis-server:6379'
+  #    - '--redis.password=ctolonml'

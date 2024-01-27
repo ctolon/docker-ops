@@ -1,0 +1,29 @@
+#
+networks:
+  jenkins:
+    driver: bridge
+
+version: '3'
+services:
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: new-mind/jenkins:latest
+    container_name: nm-jenkins-cont
+    networks:
+      - jenkins
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8085:8080"
+      - "5015:5000"
+      - "50015:50000"
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    user: root
+    restart: on-failure
+
+volumes:
+  jenkins_home:

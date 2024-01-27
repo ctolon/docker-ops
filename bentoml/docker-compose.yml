@@ -1,0 +1,23 @@
+version: '3.9'
+services:
+  bentoml:
+    image: bentoml/quickstart:latest
+    ports:
+      - 6335:6335
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+      - ./qdrant_config.yaml:/qdrant/config/config.yaml
+      - ./run.sh:/qdrant/run.sh
+    environment:
+      - INITIAL_PEER=${INITIAL_PEER}
+      - BOOTSTRAP_PEER=${BOOTSTRAP_PEER}
+    entrypoint: /qdrant/run.sh
+  proxy:
+    image: nginx:stable-alpine
+    ports:
+      - 6333:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./.htpasswd:/etc/nginx/.htpasswd
+    depends_on:
+      - qdrant

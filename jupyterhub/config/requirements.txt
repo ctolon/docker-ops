@@ -1,0 +1,4 @@
+dockerspawner
+oauthenticator
+jupyterhub-nativeauthenticator
+psycopg2

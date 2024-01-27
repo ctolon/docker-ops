@@ -1,0 +1,104 @@
+{
+    "user": {
+        "read_permissions": [
+            "Task Instances",
+            "Website",
+            "DAG Runs",
+            "Audit Logs",
+            "ImportError",
+            "XComs",
+            "DAG Code",
+            "Plugins",
+            "My Password",
+            "My Profile",
+            "Jobs",
+            "SLA Misses",
+            "DAG Dependencies",
+            "Task Logs"
+        ],
+        "menu_permissions": [
+            "Task Instances",
+            "My Password",
+            "My Profile",
+            "DAG Runs"
+        ]
+    },
+    "developer": {
+        "read_permissions": [
+            "Task Instances",
+            "Website",
+            "DAG Runs",
+            "Audit Logs",
+            "ImportError",
+            "XComs",
+            "DAG Code",
+            "Plugins",
+            "My Password",
+            "My Profile",
+            "Jobs",
+            "SLA Misses",
+            "DAG Dependencies",
+            "Task Logs"
+        ],
+        "edit_permissions": [
+            "Task Instances",
+            "My Password",
+            "My Profile",
+            "DAG Runs"
+        ],
+        "create_permissions": [
+            "Task Instances",
+            "My Password",
+            "My Profile",
+            "DAG Runs"
+        ],
+        "menu_permissions": [
+            "Task Instances",
+            "My Password",
+            "My Profile",
+            "DAG Runs"
+        ]
+    },
+    "senior_developer": {
+        "read_permissions": [
+            "Task Instances",
+            "Website",
+            "DAG Runs",
+            "Audit Logs",
+            "ImportError",
+            "XComs",
+            "DAG Code",
+            "Plugins",
+            "My Password",
+            "My Profile",
+            "Jobs",
+            "SLA Misses",
+            "DAG Dependencies",
+            "Task Logs"
+        ],
+        "edit_permissions": [
+            "Task Instances",
+            "My Password",
+            "My Profile",
+            "DAG Runs"
+        ],
+        "create_permissions": [
+            "Task Instances",
+            "My Password",
+            "My Profile",
+            "DAG Runs"
+        ],
+        "delete_permissions": [
+            "Task Instances",
+            "My Password",
+            "My Profile",
+            "DAG Runs"
+        ],
+        "menu_permissions": [
+            "Task Instances",
+            "My Password",
+            "My Profile",
+            "DAG Runs"
+        ]
+    }
+}

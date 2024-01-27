@@ -1,0 +1,38 @@
+# ------------------------- #
+#        es01 - master 
+# ------------------------- #
+
+# Node Options
+node.name: es01
+discovery.seed_hosts: es02,es03
+
+# Shared Cluster Options
+cluster.name: elk-ctolon
+network.host: 0.0.0.0
+discovery.seed_resolver.timeout: 60s
+cluster.initial_master_nodes: es01,es02,es03
+bootstrap.memory_lock: "true"
+reindex.remote.whitelist: ["172.76.0.3:9200"]
+
+# Shared Cert Options
+xpack.security.enabled: "true"
+xpack.security.http.ssl.enabled: "false"
+xpack.security.http.ssl.certificate_authorities: certs/ca/ca.crt
+xpack.security.http.ssl.verification_mode: certificate
+xpack.security.transport.ssl.enabled: "true"
+xpack.security.transport.ssl.certificate_authorities: certs/ca/ca.crt
+xpack.security.transport.ssl.verification_mode: certificate
+
+# Node-Based Cert Options
+xpack.security.http.ssl.key: certs/es01/es01.key
+xpack.security.http.ssl.certificate: certs/es01/es01.crt
+xpack.security.transport.ssl.key: certs/es01/es01.key
+xpack.security.transport.ssl.certificate: certs/es01/es01.crt
+xpack.license.self_generated.type: basic
+
+# Shared Other Options
+action.auto_create_index: ".security*,.monitoring*,.watches*,.triggered_watches,.watcher-history*"
+action.destructive_requires_name: "true"
+script.painless.regex.enabled: "true"
+xpack.security.audit.enabled: "true"
+xpack.security.authc.api_key.enabled: "false"

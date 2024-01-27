@@ -1,0 +1,21 @@
+version: '3.7'
+
+services:
+  nginx:
+    image: nginx:1.19.2-alpine
+    container_name: mlops-nginx
+    hostname: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    # Add your MLOps Ports for nginx reverse proxy
+    ports:
+      - "${MINIO_ADDRESS_PORT:-9000}:${MINIO_ADDRESS_PORT:-9000}"
+      - "${MINIO_CONSOLE_PORT:-9001}:${MINIO_CONSOLE_PORT:-9001}"
+      # - "80:80"
+    networks:
+      mlops_network:
+        ipv4_address: 172.48.0.50   # Replace with your desired static IP address for LB
+
+networks:
+  mlops_network:
+    external: true

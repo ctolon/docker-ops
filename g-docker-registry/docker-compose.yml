@@ -1,0 +1,74 @@
+version: "3.7"
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:15.0.1
+    # jboss/keycloak
+    environment:
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: password
+      DB_VENDOR: h2 
+    user: root
+    volumes:
+      - data-keycloak:/opt/jboss/keycloak/standalone/data/
+    networks:
+      ml_registry_network:
+    command: -Dkeycloak.profile.feature.docker=enabled -b 0.0.0.0
+
+  proxy:
+    image: nginx:alpine
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      ml_registry_network:
+
+  registry:
+    image: registry:2.7
+    container_name: docker-registry-ml
+    hostname: registry
+    #ports:
+    # - ${REGISTRY_PORT}:5160
+    networks:
+      ml_registry_network:
+        ipv4_address: ${IP_BACKEND}
+    restart: always
+    volumes:
+    - "registry-data:${REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY}"
+    - "./conf/:/etc/docker/registry/"
+    - "./certs:/certs"
+    # - "./auth:/auth"
+    env_file:
+      - .env
+
+  registry-ui:
+    image: joxit/registry-ui:main
+    container_name: registry-ui
+    hostname: docker-registry-ml-ui
+    restart: always
+    networks:
+      ml_registry_network:
+        ipv4_address: ${IP_FRONTEND}
+    #ports:
+    #  - "${UI_HTTP_PORT}:80"
+    #  - "${UI_HTTPS_PORT}:443"
+    #environment:
+    #  - NGINX_PROXY_HEADER_X_Forwarded_For=$$proxy_add_x_forwarded_for
+    #volumes:
+      #- ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      #- ./nginx/fullchain.pem:/etc/nginx/certs/fullchain.pem
+      #- ./nginx/privkey.pem:/etc/nginx/certs/privkey.pem
+      #- ./nginx/nginx.env:/etc/nginx/.env
+    env_file:
+      - .env
+    depends_on:
+      - registry
+
+networks:
+   ml_registry_network:
+      external: true
+
+volumes:
+  registry-data: {}
+  data-keycloak: {}

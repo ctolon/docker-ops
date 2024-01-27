@@ -1,0 +1,8 @@
+# TODO fix yaml
+server.name: kibana
+# server.host: 0.0.0.0
+# elasticsearch.url: http://0.0.0.0:9200
+elasticsearch.hosts: [http://172.76.0.3:9200]
+elasticsearch.username: kibana_system
+elasticsearch.password: test123
+elasticsearch.ssl.certificateAuthorities: [config/certs/ca/ca.crt]

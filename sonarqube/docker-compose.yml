@@ -1,0 +1,87 @@
+version: "3"
+
+networks:
+  sonar_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.55.0.0/24
+
+services:
+
+  sonarqube:
+    image: sonarqube:10.0.0-community
+    hostname: sonarqube
+    container_name: sonarqube
+    restart: unless-stopped
+
+    cpus: 0.5
+    mem_limit: 4096M
+    mem_reservation: 1024M
+    ulimits:
+      nofile:
+       soft: 65536
+       hard: 65536
+
+    depends_on:
+      - sonarqube-db
+    # environment:
+      #SONAR_JDBC_URL:
+      #SONAR_JDBC_USERNAME:
+      #SONAR_JDBC_PASSWORD: 
+      #SONAR_WEB_PORT: 9000
+
+    volumes:
+      #TODO: Find True File Permissions for Bind Volume 
+      #- /opt/sonarqube/data:/opt/sonarqube/data
+      #- /opt/sonarqube/extensions:/opt/sonarqube/extensions
+      #- /opt/sonarqube/logs:/opt/sonarqube/logs
+      - ./sonar.properties:/opt/sonarqube/conf/sonar.properties
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+
+    ports:
+      - "9000:9000"
+    networks:
+      sonar_net:
+        ipv4_address: 172.55.0.3
+    # TODO add healtcheck
+
+
+  sonarqube-db:
+    image: postgres:14.6
+    #image: postgres:15.3
+    user: postgres
+    hostname: sonarqube-db
+    container_name: sonar-postgresql
+    restart: on-failure
+    environment:
+      PGUSER: nmsonar
+      POSTGRES_USER: nmsonar
+      POSTGRES_PASSWORD: UGWv28ub4XMnEFZk
+      POSTGRES_DB: sonar
+    ports: 
+      - "3310:5432"
+    expose: 
+      - "5432"
+    volumes:
+      - $PWD/init:/docker-entrypoint-initdb.d
+      - sonar-postgresql:/var/lib/postgresql
+      - sonar-postgresql_data:/var/lib/postgresql/data
+    networks:
+      sonar_net:
+        ipv4_address: 172.55.0.4
+    #healthcheck:
+      #test: ["CMD-SHELL", "pg_isready", "-u", "$$POSTGRES_USER", "-d", "$$POSTGRES_DB"]
+      #interval: 5s
+      #timeout: 5s
+      #retries: 3
+
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonar-postgresql:
+  sonar-postgresql_data:

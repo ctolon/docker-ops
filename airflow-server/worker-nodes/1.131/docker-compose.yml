@@ -1,0 +1,108 @@
+# This configuration supports basic configuration using environment variables or an .env file
+# The following variables are supported:
+#
+# AIRFLOW_IMAGE_NAME           - Docker image name used to run Airflow.
+#                                Default: apache/airflow:2.5.1
+# AIRFLOW_UID                  - User ID in Airflow containers
+#                                Default: 50000
+# AIRFLOW_PROJ_DIR             - Base path to which all the files will be volumed.
+#                                Default: .
+# Those configurations are useful mostly in case of standalone testing/running Airflow in test/try-out mode
+#
+# _AIRFLOW_WWW_USER_USERNAME   - Username for the administrator account (if requested).
+#                                Default: airflow
+# _AIRFLOW_WWW_USER_PASSWORD   - Password for the administrator account (if requested).
+#                                Default: airflow
+# _PIP_ADDITIONAL_REQUIREMENTS - Additional PIP requirements to add when starting all containers.
+#                                Default: ''
+#
+# Feel free to modify this file to suit your needs.
+---
+version: '3'
+x-airflow-common: &airflow-common
+  build:
+    context: ../../airflow
+    dockerfile: Dockerfile
+  #image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.6.1}
+  environment: &airflow-common-env
+
+    # Airflow User
+    AIRFLOW_UID: 1000
+    AIRFLOW_GID: 0
+    AIRFLOW_BASE_MNT: ${AIRFLOW_BASE_MNT}
+
+    # Worker Minimum requirements settings
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    AIRFLOW__CELERY__WORKER_CONCURRENCY: 8
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: 'postgresql+psycopg2://airflow:airflow@${MASTER_IP}:${MASTER_PG_PORT}/airflow'
+    AIRFLOW__CELERY__RESULT_BACKEND: 'db+postgresql://airflow:airflow@${MASTER_IP}:${MASTER_PG_PORT}/airflow'
+    AIRFLOW__CELERY__BROKER_URL: 'redis://:@${MASTER_IP}:${MASTER_REDIS_PORT}/0'
+    AIRFLOW__CORE__DEFAULT_QUEUE: '192.168.1.131'
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__WEBSERVER__SECRET_KEY: ctolon
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
+  volumes:
+    - ${AIRFLOW_BASE_MNT}/dags:/opt/airflow/dags
+    - ${AIRFLOW_BASE_MNT}/logs:/opt/airflow/logs
+    - ${AIRFLOW_BASE_MNT}/plugins:/opt/airflow/plugins
+    - ${AIRLFOW_BASE_MNT}/dags/configs:/opt/airflow/dags/configs
+    # IMPORTANT: Mount Path name datastore can be different for each machine. Check it before apply. 
+  user: "${AIRFLOW_UID:-50000}:0"
+
+# When configure celery workers, don't forget to add worker hostname-ip pair to extra_hosts session on master node docker compose yaml file.
+services:
+  airflow-remote-worker:
+    <<: *airflow-common
+    command: celery worker -H worker-1.131 -q worker-1.131
+    # Be careful: forget to change this to machine hostname as ip address in .env file. Also change -H and -q parameters as worker hostname in command.
+    hostname: ${WORKER_HOSTNAME}
+    container_name: airflow-celery-worker
+    networks:
+      worker-net:
+        ipv4_address: 172.25.0.44
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - 'celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    environment:
+      <<: *airflow-common-env
+      # Required to handle warm shutdown of the celery workers properly
+      # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
+      DUMB_INIT_SETSID: "0"
+    ports:
+      - ${WORKER_PORT}:${WORKER_PORT}
+    restart: always
+
+  # Reference: https://onedevblog.com/how-to-fix-a-permission-denied-when-using-dockeroperator-in-airflow/
+  docker-proxy:
+    image: bobrik/socat
+    container_name: airflow-docker-proxy
+    command: "TCP4-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock"
+    ports:
+      - "${DP_PORT_HOST}:${DP_PORT_CNT}"
+    volumes:
+      - ${DOCKER_SOCKET_PATH}:${DOCKER_SOCKET_PATH}
+    restart: always
+    networks:
+      worker-net:
+        ipv4_address: 172.25.0.45
+    healthcheck:
+      test: ["CMD", "socat", "STDIO", "UNIX-CONNECT:/var/run/docker.sock"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
+networks:
+  worker-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/24

@@ -1,0 +1,90 @@
+version: '3.9'
+
+
+networks:
+  qdrant_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.88.0.0/24
+          gateway: 172.88.0.1
+
+
+services:
+  qdrant-01:
+    image: qdrant/qdrant
+    container_name: qdrant-01
+    hostname: qdrant-01
+    restart: unless-stopped
+    network_mode: host
+    #ports:
+    #  - 6335:6335
+    #  - 6334:6334
+    volumes:
+      - ./qdrant_data-01:/qdrant/storage
+      - ./conf/qdrant_config-01.yaml:/qdrant/config/config.yaml
+      - ./run.sh:/qdrant/run.sh
+    environment:
+      - INITIAL_PEER=http://192.168.0.163:6335
+    entrypoint: /qdrant/run.sh
+    #networks:
+    #  qdrant_net:
+    #    ipv4_address:
+    #      172.88.0.2
+
+  qdrant-02:
+    image: qdrant/qdrant
+    container_name: qdrant-02
+    hostname: qdrant-02
+    restart: unless-stopped
+    network_mode: host
+    #ports:
+    #  - 6435:6335
+    #  - 6434:6334
+    volumes:
+      - ./qdrant_data-02:/qdrant/storage
+      - ./conf/qdrant_config-02.yaml:/qdrant/config/config.yaml
+      - ./run.sh:/qdrant/run.sh
+    environment:
+      - BOOTSTRAP_PEER=http://192.168.0.163:6335
+    entrypoint: /qdrant/run.sh
+    #networks:
+    #  qdrant_net:
+    #    ipv4_address:
+    #      172.88.0.3
+    depends_on:
+      - qdrant-01
+
+  qdrant-03:
+    image: qdrant/qdrant
+    container_name: qdrant-03
+    hostname: qdrant-03
+    restart: unless-stopped
+    network_mode: host
+    #ports:
+    #  - 6535:6335
+    #  - 6534:6334
+    volumes:
+      - ./qdrant_data-03:/qdrant/storage
+      - ./conf/qdrant_config-03.yaml:/qdrant/config/config.yaml
+      - ./run.sh:/qdrant/run.sh
+    environment:
+      - BOOTSTRAP_PEER=http://192.168.0.163:6335
+    entrypoint: /qdrant/run.sh
+    #networks:
+    #  qdrant_net:
+    #    ipv4_address:
+    #      172.88.0.4
+    depends_on:
+      - qdrant-01
+
+
+#  proxy:
+#    image: nginx:stable-alpine
+#    ports:
+#      - 6335:80
+#    volumes:
+#      - ./nginx.conf:/etc/nginx/nginx.conf
+#      - ./.htpasswd:/etc/nginx/.htpasswd
+#    depends_on:
+#      - qdrant

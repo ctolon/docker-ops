@@ -1,0 +1,151 @@
+version: "3.9"
+
+networks:
+  redis_sentinel_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 173.16.0.0/24
+
+
+# Settings and configurations that are common for all containers
+x-redis-common: &redis-common
+  image: redis:${REDIS_TAG}
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      REDIS_TAG: ${REDIS_TAG}
+  restart: always
+  sysctls:
+    - net.core.somaxconn=65535
+  expose:
+    - "${REDIS_MASTER_PORT}"
+  env_file:
+    - .env
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 10s
+    timeout: 30s
+    retries: 50
+    start_period: 30s
+
+x-sentinel-common: &sentinel-common
+  image: sentinel-redis:${REDIS_TAG}
+  build:
+    context: .
+    dockerfile: sentinel.Dockerfile
+    args:
+      REDIS_TAG: ${REDIS_TAG}
+  restart: always
+  command: bash -c "redis-server /etc/redis-config/sentinel.conf --sentinel"
+  sysctls:
+    - net.core.somaxconn=65535
+  expose:
+    - "${REDIS_SENTINEL_1_PORT}"
+  env_file:
+    - .env
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 10s
+    timeout: 30s
+    retries: 50
+    start_period: 30s
+  # depends_on:
+  #   redis-master:
+  #     condition: service_healthy
+  #   redis-slave-1:
+  #     condition: service_healthy
+  #   redis-slave-2:
+  #     condition: service_healthy
+
+services:
+
+  redis-master:
+    <<: *redis-common
+    container_name: redis-master
+    hostname: redis-master
+    volumes:
+      - ./conf/redis_master.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "${REDIS_MASTER_PORT}:${REDIS_MASTER_PORT}"
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"] 
+    networks:
+      redis_sentinel_net:
+        ipv4_address: ${IP_REDIS_MASTER}
+
+  redis-slave-1:
+    <<: *redis-common
+    container_name: redis-slave-1
+    volumes:
+      - ./conf/redis_slave_1.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf", "--slaveof", "redis-master", "${REDIS_MASTER_PORT}"]
+    ports:
+      - "${REDIS_SLAVE_1_PORT}:${REDIS_MASTER_PORT}"
+    networks:
+      redis_sentinel_net:
+        ipv4_address: ${IP_REDIS_SLAVE_1}
+    links:
+      - "redis-master"
+    #depends_on:
+    #  redis-master:
+    #    condition: service_healthy
+
+  redis-slave-2:
+    <<: *redis-common
+    container_name: redis-slave-2
+    volumes:
+      - ./conf/redis_slave_2.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf", "--slaveof", "redis-master", "${REDIS_MASTER_PORT}"]
+    ports:
+      - "${REDIS_SLAVE_2_PORT}:${REDIS_MASTER_PORT}"
+    networks:
+      redis_sentinel_net:
+        ipv4_address: ${IP_REDIS_SLAVE_2}
+    links:
+      - "redis-master"
+    #depends_on:
+    #  redis-master:
+    #    condition: service_healthy
+
+  redis-sentinel-1:
+    <<: *sentinel-common
+    container_name: redis-sentinel-1
+    #volumes:
+    #  - ./conf/sentinel/:/etc/redis-config/
+    ports:
+      - "${REDIS_SENTINEL_1_PORT}:${REDIS_SENTINEL_1_PORT}"
+    networks:
+      redis_sentinel_net:
+        ipv4_address: ${IP_REDIS_SENTINEL_1}
+    links:
+      - "redis-master"
+
+  redis-sentinel-2:
+    <<: *sentinel-common
+    container_name: redis-sentinel-2
+    #volumes:
+    #  - ./conf/sentinel/:/etc/redis-config/
+    ports:
+      - "${REDIS_SENTINEL_2_PORT}:${REDIS_SENTINEL_1_PORT}"
+    networks:
+      redis_sentinel_net:
+        ipv4_address: ${IP_REDIS_SENTINEL_2}
+    links:
+      - "redis-master"
+
+  redis-sentinel-3:
+    <<: *sentinel-common
+    container_name: redis-sentinel-3
+    #volumes:
+    #  - ./conf/sentinel/:/etc/redis-config/
+    ports:
+      - "${REDIS_SENTINEL_3_PORT}:${REDIS_SENTINEL_1_PORT}"
+    networks:
+      redis_sentinel_net:
+        ipv4_address: ${IP_REDIS_SENTINEL_3}
+    links:
+      - "redis-master"
+    # tty: true
+    # command: /bin/bash

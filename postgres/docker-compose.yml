@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  pgadmin-mlflow:
+    image: dpage/pgadmin4
+    depends_on:
+      - postgresql-mlflow
+    ports:
+      - "5758:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ctolon.ai
+      PGADMIN_DEFAULT_PASSWORD: ctolon
+    restart: unless-stopped
+    networks:
+      - mlops_network
+      
+  postgresql-mlflow:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    image: postgresql-mlflow
+    container_name: postgresql-mlflow
+    user: postgres
+    hostname: postgresql
+    env_file:
+      - .env
+    ports:
+      - ${POSTGRES_PORT_EXT}:${POSTGRES_PORT_INT}
+    volumes:
+      - $PWD/postgres/init:/docker-entrypoint-initdb.d
+    restart: on-failure
+    cap_add: 
+      - SYS_NICE # CAP_SYS_NICE
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "mlflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    networks:
+      - mlops_network
