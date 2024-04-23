@@ -1,5 +1,4 @@
-FROM jenkins/jenkins:2.440.3-lts-jdk17
-USER root
+FROM jenkins/ssh-agent:jdk17
 
 # Create jenkins home directories
 RUN mkdir /var/log/jenkins
@@ -49,7 +48,7 @@ RUN apt-get update && apt-get install -qy \
 
 # Install docker
 # Add Docker's official GPG key:
-RUN apt-get install ca-certificates curl \
+    RUN apt-get install ca-certificates curl \
     && install -m 0755 -d /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
     && chmod a+r /etc/apt/keyrings/docker.asc
@@ -73,6 +72,3 @@ RUN rm -rf /var/lib/apt/lists/*
 # add the jenkins user to the docker group so that sudo is not required to run docker commands
 RUN groupmod -g 1026 docker && gpasswd -a jenkins docker
 USER jenkins
-
-# Install jenkins plugins
-RUN jenkins-plugin-cli

@@ -1,5 +1,3 @@
-# Jenkins DooD Approach.
-
 networks:
   jenkins_net:
     driver: bridge
@@ -9,60 +7,89 @@ networks:
         - subnet: 172.90.0.0/24
           gateway: 172.90.0.1
 
+
+volumes:
+  jenkins_home:
+  docker-graph-storage:
+  jenkins-docker-certs:
+  jenkins-dind-data:
+  jenkins-dind-certs:
+
 version: '3'
 
 services:
 
-  # Jenkins Master
   jenkins:
     build:
       context: .
       dockerfile: Dockerfile
-    image: jenkins-controller:latest
-    container_name: jenkins-controller
+    image: master
+    container_name: jenkins-master
     networks:
       jenkins_net:
         ipv4_address: 172.90.0.2
     volumes:
       - ./jenkins_home:/var/jenkins_home
-      - ./jenkins_backup:/tmp/backup/hudson
       #- /var/run/docker.sock:/var/run/docker.sock
+      - ./jenkins_backup:/tmp/backup/hudson
+      - jenkins-dind-certs:/certs/client:ro
     ports:
       - "8085:8080"
       - "5015:5000"
       - "50015:50000"
     environment:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+      - DOCKER_HOST=tcp://docker:2376
+      - DOCKER_CERT_PATH=/certs/client
+      - DOCKER_TLS_VERIFY=1
       - JENKINS_OPTS=--logfile=/var/log/jenkins/jenkins.log --webroot=/var/cache/jenkins/war --prefix=/jenkins
       - JAVA_OPTS=-Xms1536m -Xmx1536m
 
     user: jenkins
+    privileged: true
     restart: on-failure
 
-  # Jenkins Agent
   agent:
-    image: jenkins-agent:latest
+    image: worker
     build:
       context: .
       dockerfile: agent.Dockerfile
-    container_name: jenkins-agent
-    user: root
-    #privileged: true
-    restart: on-failure
+    container_name: jenkins_sandbox_agent
+    privileged: true
+    user: jenkins
     networks:
       jenkins_net:
         ipv4_address: 172.90.0.3
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - 22
     environment:
       - JENKINS_AGENT_SSH_PUBKEY=ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILY4zy8uM8jpXRFUktR0UvAdu/KSlLo+cy+4d2UciJWD jenkins
-      - JENKINS_AGENT_WORKDIR=/home/jenkins/agent
-      - JAVA_HOME=/opt/java/openjdk/bin/java
+      - DOCKER_HOST=tcp://docker:2376
+      - DOCKER_CERT_PATH=/certs/client
+      - DOCKER_TLS_VERIFY=1
     deploy:
       resources:
         limits:
-          cpus: "2.0"
-          memory: 2048M
-    memswap_limit: 4096M
+          cpus: "1.0"
+          memory: 1000M
+    memswap_limit: 1000M
+
+  dind:
+    image: docker:dind
+    privileged: true
+    restart: always
+    networks:
+      jenkins_net:
+        aliases: 
+          - docker
+        ipv4_address: 172.90.0.4
+    ports:
+      - 2376:2376
+    tty: true
+    volumes:
+      - jenkins-dind-data:/var/jenkins_home
+      - jenkins-dind-certs:/certs/client
+      #- $HOME:/home
+      - docker-graph-storage:/var/lib/docker
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
