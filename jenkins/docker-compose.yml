@@ -18,7 +18,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: jenkins-controller:latest
+    image: master-jenkins
     container_name: jenkins-controller
     networks:
       jenkins_net:
@@ -27,12 +27,14 @@ services:
       - ./jenkins_home:/var/jenkins_home
       - ./jenkins_backup:/tmp/backup/hudson
       #- /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env
     ports:
       - "8085:8080"
       - "5015:5000"
       - "50015:50000"
     environment:
-      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+      #- JAVA_OPTS=-Djenkins.install.runSetupWizard=false
       - JENKINS_OPTS=--logfile=/var/log/jenkins/jenkins.log --webroot=/var/cache/jenkins/war --prefix=/jenkins
       - JAVA_OPTS=-Xms1536m -Xmx1536m
 
@@ -41,7 +43,7 @@ services:
 
   # Jenkins Agent
   agent:
-    image: jenkins-agent:latest
+    image: slave-jenkins
     build:
       context: .
       dockerfile: agent.Dockerfile
@@ -56,8 +58,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - 22
+    env_file:
+      - .env
     environment:
-      - JENKINS_AGENT_SSH_PUBKEY=ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILY4zy8uM8jpXRFUktR0UvAdu/KSlLo+cy+4d2UciJWD jenkins
+      - JENKINS_AGENT_SSH_PUBKEY=ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKnKjMXOLw3lgawZj756QY+kfWoHY6zMT7cIVnsSdPUL jenkins.
       - JENKINS_AGENT_WORKDIR=/home/jenkins/agent
       - JAVA_HOME=/opt/java/openjdk/bin/java
     deploy:

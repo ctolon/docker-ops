@@ -1,7 +1,6 @@
-ssh kaynak
+Extra Kaynaklar
 
 https://github.com/Douglas0n/jenkins-docker/blob/master/README.md
-
 # NB: The 996 is the group id for the docker group on the ECS server (Amazon Linux 2).
 # Using the same group ID provides all of the necessary OS-level permissions and means
 # we don't need to do any special hacks to get Docker running on the build server.
@@ -9,7 +8,6 @@ RUN groupadd -g 996 docker && usermod -a -G docker jenkins
 RUN apt-get install -y docker-ce
 
 https://stackoverflow.com/questions/24599571/multiple-jenkins-masters-using-a-shared-slave-pool
-
 https://github.com/jenkinsci/docker/blob/master/README.md
 https://docs.cloudbees.com/docs/cloudbees-ci-kb/latest/client-and-managed-controllers/how-to-select-the-correct-agent-to-build-my-job
 https://github.com/docker-archive/jenkins-pipeline-scripts/issues/5
@@ -23,3 +21,6 @@ https://blog.hiebl.cc/posts/gitlab-runner-docker-in-docker/
 https://medium.com/@oleggorj/deploy-jenkins-with-docker-and-ansible-c76ee7854440
 https://medium.com/@srghimire061/how-to-configure-jenkins-master-and-slave-nodes-257f0755c804
 https://www.linkedin.com/pulse/docker-in-docker-approaches-taradutt-pant
+https://github.com/axltxl/docker-jenkins-dood/blob/develop/supervisord.conf
+https://stackoverflow.com/questions/38794818/how-to-get-gid-of-group-on-host-in-dockerfile
+https://github.com/axltxl/docker-jenkins-dood/blob/develop/Dockerfile

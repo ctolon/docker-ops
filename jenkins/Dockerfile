@@ -64,14 +64,17 @@ RUN apt-get update -y
 # Install Docker CE
 RUN apt-get install -qy docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Activate the docker group
-RUN newgrp docker
-
 # Clean up
 RUN rm -rf /var/lib/apt/lists/*
 
 # add the jenkins user to the docker group so that sudo is not required to run docker commands
-RUN groupmod -g 1026 docker && gpasswd -a jenkins docker
+#RUN groupmod -g 999 docker && gpasswd -a jenkins docker
+RUN gpasswd -a jenkins docker
+
+# Set the docker group id to the same as the host
+ENV DOCKER_USER_GID=${DOCKER_USER_GID:-999}
+RUN usermod -aG ${DOCKER_USER_GID} jenkins
+
 USER jenkins
 
 # Install jenkins plugins
